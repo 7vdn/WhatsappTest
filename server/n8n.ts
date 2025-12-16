@@ -47,6 +47,7 @@ export async function createCompanyWorkflow(companyName: string) {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`n8n API Error (${response.status}):`, errorText);
       throw new Error(`n8n API responded with ${response.status}: ${errorText}`);
     }
 

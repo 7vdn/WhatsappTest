@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL,
+  "companyName" TEXT,
   "accessToken" TEXT UNIQUE NOT NULL,
   "messageCount" INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
