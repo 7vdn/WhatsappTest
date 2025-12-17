@@ -62,6 +62,14 @@ async function buildAll() {
     external: externals,
     logLevel: "info",
   });
+
+  // Copy Neurt.json to dist
+  try {
+    await copyFile("Neurt.json", "dist/Neurt.json");
+    console.log("Copied Neurt.json to dist/");
+  } catch (e) {
+    console.warn("Warning: Could not copy Neurt.json to dist/", e);
+  }
 }
 
 buildAll().catch((err) => {

@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 export async function createCompanyWorkflow(companyName: string) {
   if (!process.env.N8N_HOST || !process.env.N8N_API_KEY) {
@@ -8,21 +9,43 @@ export async function createCompanyWorkflow(companyName: string) {
   }
 
   try {
-    // Read the template file
-    // Assuming the file is at the project root as specified by the user
-    // The user provided absolute path: d:\NEW_NEURT\Web\WhatsappApi-main\Neurt.json
-    // In the running application, we should try to find it relative to the project root or use the absolute path if it's stable
-    // For this environment, we'll use the absolute path or try to resolve it relative to CWD
-    
-    let templatePath = path.resolve(process.cwd(), 'Neurt.json');
-    
-    // Check if file exists
-    try {
-      await fs.access(templatePath);
-    } catch {
-       // Fallback to absolute path if CWD resolution fails (though process.cwd() should be correct)
-       templatePath = 'd:\\NEW_NEURT\\Web\\WhatsappApi-main\\Neurt.json';
+    // Try to find Neurt.json in multiple locations
+    const possiblePaths = [
+      path.resolve(process.cwd(), 'Neurt.json'), // Root
+      path.resolve(process.cwd(), 'dist', 'Neurt.json'), // Dist (if running from root)
+    ];
+
+    // If __dirname is available (in CommonJS or via banner shim), use it
+    if (typeof __dirname !== 'undefined') {
+       possiblePaths.push(path.resolve(__dirname, 'Neurt.json'));
+    } else {
+        // Fallback for ESM without banner
+       try {
+         const __filename = fileURLToPath(import.meta.url);
+         const __dirname = path.dirname(__filename);
+         possiblePaths.push(path.resolve(__dirname, 'Neurt.json'));
+       } catch (e) {
+         // ignore
+       }
     }
+
+    let templatePath: string | null = null;
+    for (const p of possiblePaths) {
+      try {
+        await fs.access(p);
+        templatePath = p;
+        break;
+      } catch {
+        // continue
+      }
+    }
+
+    if (!templatePath) {
+       console.error(`Could not find Neurt.json in any of the checked paths: ${possiblePaths.join(', ')}`);
+       return;
+    }
+
+    console.log(`Using workflow template from: ${templatePath}`);
 
     const fileContent = await fs.readFile(templatePath, 'utf-8');
     const workflow = JSON.parse(fileContent);
@@ -30,12 +53,17 @@ export async function createCompanyWorkflow(companyName: string) {
     // Update workflow name
     workflow.name = companyName;
 
-    // Remove ID if present to ensure a new workflow is created
-    if (workflow.id) {
-        delete workflow.id;
-    }
+    // Clean up fields to ensure new workflow creation
+    delete workflow.id;
+    delete workflow.active;
+    delete workflow.createdAt;
+    delete workflow.updatedAt;
+    delete workflow.versionId;
+    // Remove tags if any, to avoid errors if tags don't exist
+    // delete workflow.tags; 
 
     // Send to n8n API
+    console.log(`Sending workflow creation request to ${process.env.N8N_HOST}...`);
     const response = await fetch(`${process.env.N8N_HOST}/api/v1/workflows`, {
       method: 'POST',
       headers: {
@@ -57,8 +85,5 @@ export async function createCompanyWorkflow(companyName: string) {
 
   } catch (error) {
     console.error('Failed to create n8n workflow:', error);
-    // We don't throw here to avoid blocking user registration, just log the error
-    // Unless the requirement is to strictly fail registration if workflow fails.
-    // Usually it's better to allow registration and handle this asynchronously or log it.
   }
 }
