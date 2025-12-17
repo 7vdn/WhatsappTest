@@ -66,21 +66,19 @@ export async function createCompanyWorkflow(companyName: string) {
 
     console.log(`Loaded workflow template. Name: ${workflow.name}, Nodes: ${workflow.nodes.length}`);
 
-    // Update workflow name
-    workflow.name = companyName;
-
-    // Clean up fields to ensure new workflow creation
-    // We keep 'settings' and 'staticData' as they are often required/useful
-    // We remove 'pinData' as it contains large execution history
-    const fieldsToRemove = ['id', 'active', 'createdAt', 'updatedAt', 'versionId', 'pinData', 'shared', 'tags'];
-    fieldsToRemove.forEach(field => delete workflow[field]);
-    
-    // Explicitly set tags to empty to avoid dependency issues
-    workflow.tags = [];
+    // Construct a clean payload with only allowed fields
+    const newWorkflow = {
+      name: companyName,
+      nodes: workflow.nodes,
+      connections: workflow.connections,
+      settings: workflow.settings,
+      staticData: workflow.staticData,
+      // tags: [], // Safest to omit tags entirely for creation unless we have valid IDs
+    };
 
     // Send to n8n API
     console.log(`Sending workflow creation request to ${n8nHost}...`);
-    // console.log('Payload preview:', JSON.stringify(workflow).substring(0, 200) + '...');
+    // console.log('Payload preview:', JSON.stringify(newWorkflow).substring(0, 200) + '...');
 
     const response = await fetch(`${n8nHost}/api/v1/workflows`, {
       method: 'POST',
@@ -88,7 +86,7 @@ export async function createCompanyWorkflow(companyName: string) {
         'X-N8N-API-KEY': process.env.N8N_API_KEY,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(workflow),
+      body: JSON.stringify(newWorkflow),
     });
 
     if (!response.ok) {
