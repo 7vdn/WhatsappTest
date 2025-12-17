@@ -137,6 +137,8 @@ export class SupabaseStorage implements IStorage {
       messageCount: 0,
     };
 
+    console.log("Creating user in Supabase with payload:", JSON.stringify(user, null, 2));
+
     const { data, error } = await this.supabase
       .from('users')
       .insert([user])
