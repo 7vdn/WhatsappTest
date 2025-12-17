@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { type User, type InsertUser } from "@shared/schema";
 import { randomUUID, randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
