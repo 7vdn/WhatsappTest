@@ -55,9 +55,10 @@ export class MemStorage implements IStorage {
     const hashedPassword = await hashPassword(insertUser.password);
 
     const user: User = {
-      ...insertUser,
       id,
+      email: insertUser.email,
       password: hashedPassword,
+      companyName: insertUser.companyName ?? null,
       accessToken,
       messageCount: 0,
     };
@@ -130,14 +131,13 @@ export class SupabaseStorage implements IStorage {
     const hashedPassword = await hashPassword(insertUser.password);
 
     const user: User = {
-      ...insertUser,
       id,
+      email: insertUser.email,
       password: hashedPassword,
+      companyName: insertUser.companyName ?? null,
       accessToken,
       messageCount: 0,
     };
-
-    console.log("Creating user in Supabase with payload:", JSON.stringify(user, null, 2));
 
     const { data, error } = await this.supabase
       .from('users')
@@ -184,4 +184,3 @@ async function createStorage(): Promise<IStorage> {
 }
 
 export const storage = await createStorage();
-

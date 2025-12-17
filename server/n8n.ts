@@ -8,6 +8,8 @@ export async function createCompanyWorkflow(companyName: string) {
     return;
   }
 
+  const n8nHost = process.env.N8N_HOST.replace(/\/+$/, "");
+
   try {
     // Try to find Neurt.json in multiple locations
     const possiblePaths = [
@@ -63,8 +65,8 @@ export async function createCompanyWorkflow(companyName: string) {
     // delete workflow.tags; 
 
     // Send to n8n API
-    console.log(`Sending workflow creation request to ${process.env.N8N_HOST}...`);
-    const response = await fetch(`${process.env.N8N_HOST}/api/v1/workflows`, {
+    console.log(`Sending workflow creation request to ${n8nHost}...`);
+    const response = await fetch(`${n8nHost}/api/v1/workflows`, {
       method: 'POST',
       headers: {
         'X-N8N-API-KEY': process.env.N8N_API_KEY,

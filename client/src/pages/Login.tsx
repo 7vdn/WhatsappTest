@@ -49,6 +49,7 @@ export default function Login() {
   const registerForm = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
+      companyName: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -68,7 +69,7 @@ export default function Login() {
 
   const handleRegister = async (data: RegisterFormData) => {
     try {
-      await register({ email: data.email, password: data.password, confirmPassword: data.confirmPassword });
+      await register({ companyName: data.companyName, email: data.email, password: data.password, confirmPassword: data.confirmPassword });
       toast({ title: "تم إنشاء الحساب بنجاح", className: "bg-green-600 text-white border-none" });
       setLocation("/");
     } catch (error: any) {

@@ -8,8 +8,8 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   companyName: text("companyName"),
-  accessToken: text("access_token").notNull(),
-  messageCount: integer("message_count").notNull().default(0),
+  accessToken: text("accessToken").notNull(),
+  messageCount: integer("messageCount").notNull().default(0),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -24,6 +24,7 @@ export const loginSchema = z.object({
 });
 
 export const registerSchema = z.object({
+  companyName: z.string().min(1, "اسم الشركة مطلوب"),
   email: z.string().email("البريد الإلكتروني غير صحيح"),
   password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
   confirmPassword: z.string(),
