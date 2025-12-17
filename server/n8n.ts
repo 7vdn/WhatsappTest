@@ -70,16 +70,13 @@ export async function createCompanyWorkflow(companyName: string) {
     workflow.name = companyName;
 
     // Clean up fields to ensure new workflow creation
-    const fieldsToRemove = ['id', 'active', 'createdAt', 'updatedAt', 'versionId', 'settings', 'staticData', 'pinData'];
+    // We keep 'settings' and 'staticData' as they are often required/useful
+    // We remove 'pinData' as it contains large execution history
+    const fieldsToRemove = ['id', 'active', 'createdAt', 'updatedAt', 'versionId', 'pinData', 'shared', 'tags'];
     fieldsToRemove.forEach(field => delete workflow[field]);
     
-    // Also remove IDs from nodes to force regeneration (optional, but safer)
-    // workflow.nodes = workflow.nodes.map((node: any) => {
-    //   const { id, ...rest } = node;
-    //   return rest;
-    // });
-    // UPDATE: n8n import usually handles node IDs fine, but let's keep them unique if possible or let n8n handle it.
-    // For now, we keep node IDs as they are needed for connections.
+    // Explicitly set tags to empty to avoid dependency issues
+    workflow.tags = [];
 
     // Send to n8n API
     console.log(`Sending workflow creation request to ${n8nHost}...`);
