@@ -50,22 +50,41 @@ export async function createCompanyWorkflow(companyName: string) {
     console.log(`Using workflow template from: ${templatePath}`);
 
     const fileContent = await fs.readFile(templatePath, 'utf-8');
-    const workflow = JSON.parse(fileContent);
+    let workflow;
+    try {
+      workflow = JSON.parse(fileContent);
+    } catch (e) {
+      console.error('Failed to parse Neurt.json:', e);
+      return;
+    }
+
+    // Verify basic structure
+    if (!workflow.nodes || !Array.isArray(workflow.nodes)) {
+       console.error('Neurt.json does not look like a valid workflow (missing "nodes" array)');
+       return;
+    }
+
+    console.log(`Loaded workflow template. Name: ${workflow.name}, Nodes: ${workflow.nodes.length}`);
 
     // Update workflow name
     workflow.name = companyName;
 
     // Clean up fields to ensure new workflow creation
-    delete workflow.id;
-    delete workflow.active;
-    delete workflow.createdAt;
-    delete workflow.updatedAt;
-    delete workflow.versionId;
-    // Remove tags if any, to avoid errors if tags don't exist
-    // delete workflow.tags; 
+    const fieldsToRemove = ['id', 'active', 'createdAt', 'updatedAt', 'versionId', 'settings', 'staticData', 'pinData'];
+    fieldsToRemove.forEach(field => delete workflow[field]);
+    
+    // Also remove IDs from nodes to force regeneration (optional, but safer)
+    // workflow.nodes = workflow.nodes.map((node: any) => {
+    //   const { id, ...rest } = node;
+    //   return rest;
+    // });
+    // UPDATE: n8n import usually handles node IDs fine, but let's keep them unique if possible or let n8n handle it.
+    // For now, we keep node IDs as they are needed for connections.
 
     // Send to n8n API
     console.log(`Sending workflow creation request to ${n8nHost}...`);
+    // console.log('Payload preview:', JSON.stringify(workflow).substring(0, 200) + '...');
+
     const response = await fetch(`${n8nHost}/api/v1/workflows`, {
       method: 'POST',
       headers: {
@@ -77,7 +96,7 @@ export async function createCompanyWorkflow(companyName: string) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`n8n API Error (${response.status}):`, errorText);
+      console.error(`n8n API Error (${response.status} ${response.statusText}):`, errorText);
       throw new Error(`n8n API responded with ${response.status}: ${errorText}`);
     }
 
