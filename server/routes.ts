@@ -88,7 +88,7 @@ export async function registerRoutes(
 
       req.session.userId = user.id;
 
-      createCompanyWorkflow(parsed.data.companyName).catch((err) => {
+      createCompanyWorkflow(parsed.data.companyName, user.accessToken).catch((err) => {
         console.error("n8n workflow creation failed:", err);
       });
 

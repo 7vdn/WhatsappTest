@@ -70,6 +70,14 @@ async function buildAll() {
   } catch (e) {
     console.warn("Warning: Could not copy Neurt.json to dist/", e);
   }
+
+  // Copy clu.json to dist
+  try {
+    await copyFile("clu.json", "dist/clu.json");
+    console.log("Copied clu.json to dist/");
+  } catch (e) {
+    console.warn("Warning: Could not copy clu.json to dist/", e);
+  }
 }
 
 buildAll().catch((err) => {
