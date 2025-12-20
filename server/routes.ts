@@ -86,7 +86,7 @@ export async function registerRoutes(
         password: parsed.data.password,
       });
 
-      req.session.userId = user.id;
+      // req.session.userId = user.id; // Removed: Do not login immediately
 
       createCompanyWorkflow(parsed.data.companyName, user.accessToken).catch((err) => {
         console.error("n8n workflow creation failed:", err);
@@ -97,7 +97,7 @@ export async function registerRoutes(
         user: {
           id: user.id,
           email: user.email,
-          accessToken: user.accessToken,
+          // accessToken: user.accessToken, // Optional: Don't send sensitive data if not needed yet
           messageCount: user.messageCount,
         }
       });
