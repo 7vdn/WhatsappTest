@@ -73,15 +73,25 @@ export async function createCompanyWorkflow(companyName: string, accessToken: st
     // Update access token in WhatsappApi nodes
     let updatedNodesCount = 0;
     workflow.nodes.forEach((node: any) => {
+      // Check if node name starts with WhatsappApi (e.g. WhatsappApi, WhatsappApi1, WhatsappApi13)
       if (node.name && node.name.startsWith('WhatsappApi')) {
+        console.log(`Inspecting node: ${node.name} for x-access-token...`);
+        
         // Check for x-access-token in parameters.headerParameters.parameters
         if (node.parameters?.headerParameters?.parameters && Array.isArray(node.parameters.headerParameters.parameters)) {
           const parameters = node.parameters.headerParameters.parameters;
           const tokenParam = parameters.find((p: any) => p.name === 'x-access-token');
+          
           if (tokenParam) {
+            console.log(`Found x-access-token in ${node.name}. Old value: ${tokenParam.value.substring(0, 10)}...`);
             tokenParam.value = accessToken;
+            console.log(`Updated x-access-token in ${node.name} to: ${accessToken.substring(0, 10)}...`);
             updatedNodesCount++;
+          } else {
+             console.log(`Node ${node.name} has headerParameters but no x-access-token param.`);
           }
+        } else {
+             console.log(`Node ${node.name} does not have valid headerParameters.parameters structure.`);
         }
       }
     });
