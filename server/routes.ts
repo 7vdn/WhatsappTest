@@ -107,6 +107,25 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/auth/verify-otp", async (req, res) => {
+    try {
+      const { email, otp } = req.body;
+      if (!email || !otp) {
+        return res.status(400).json({ error: "البريد الإلكتروني ورمز التحقق مطلوبان" });
+      }
+
+      const isValid = await storage.verifyEmailOtp(email, otp);
+      if (!isValid) {
+        return res.status(400).json({ error: "رمز التحقق غير صحيح أو منتهي الصلاحية" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("OTP Verification error:", error);
+      res.status(500).json({ error: "حدث خطأ في التحقق من الرمز" });
+    }
+  });
+
   app.post("/api/auth/login", async (req, res) => {
     try {
       const parsed = loginSchema.safeParse(req.body);

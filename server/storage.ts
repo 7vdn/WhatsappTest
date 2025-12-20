@@ -169,6 +169,21 @@ export class SupabaseStorage implements IStorage {
     return data as User;
   }
 
+  async verifyEmailOtp(email: string, otp: string): Promise<boolean> {
+    const { data, error } = await this.supabase.auth.verifyOtp({
+      email,
+      token: otp,
+      type: 'signup',
+    });
+
+    if (error || !data.user) {
+      console.error("OTP Verification failed:", error);
+      return false;
+    }
+
+    return true;
+  }
+
   async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
     const { data, error } = await this.supabase
       .from('users')

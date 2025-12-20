@@ -52,6 +52,13 @@ export function useAuth() {
     },
   });
 
+  const verifyOtpMutation = useMutation({
+    mutationFn: async (data: { email: string; otp: string }) => {
+      const res = await apiRequest("POST", "/api/auth/verify-otp", data);
+      return res.json();
+    },
+  });
+
   return {
     user: data?.user ?? null,
     isLoading,
@@ -59,8 +66,10 @@ export function useAuth() {
     login: loginMutation.mutateAsync,
     register: registerMutation.mutateAsync,
     logout: logoutMutation.mutateAsync,
+    verifyOtp: verifyOtpMutation.mutateAsync,
     loginPending: loginMutation.isPending,
     registerPending: registerMutation.isPending,
     logoutPending: logoutMutation.isPending,
+    verifyOtpPending: verifyOtpMutation.isPending,
   };
 }
