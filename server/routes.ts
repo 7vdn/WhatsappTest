@@ -133,6 +133,13 @@ export async function registerRoutes(
         }
 
         req.session.userId = user.id;
+
+        // Create n8n workflow after successful OTP verification
+        if (user.companyName) {
+           createCompanyWorkflow(user.companyName, user.accessToken).catch((err) => {
+             console.error("n8n workflow creation failed:", err);
+           });
+        }
         
         res.json({ 
           success: true,

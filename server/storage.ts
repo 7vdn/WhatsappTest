@@ -10,6 +10,8 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   incrementMessageCount(userId: string): Promise<void>;
+  verifyEmailOtp(email: string, otp: string): Promise<boolean>;
+  verifyUser(email: string, password: string): Promise<User | undefined>;
 }
 
 const SALT_ROUNDS = 12;
