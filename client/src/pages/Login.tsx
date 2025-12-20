@@ -70,8 +70,8 @@ export default function Login() {
   const handleRegister = async (data: RegisterFormData) => {
     try {
       await register({ companyName: data.companyName, email: data.email, password: data.password, confirmPassword: data.confirmPassword });
-      toast({ title: "تم إنشاء الحساب بنجاح", className: "bg-green-600 text-white border-none" });
-      setLocation("/");
+      toast({ title: "تم إنشاء الحساب بنجاح", description: "يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب", className: "bg-green-600 text-white border-none" });
+      setActiveTab("login"); // Switch to login tab
     } catch (error: any) {
       const errorMessage = error?.message || "حدث خطأ في التسجيل";
       toast({ title: "خطأ", description: errorMessage, variant: "destructive" });

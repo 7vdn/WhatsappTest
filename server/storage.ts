@@ -126,14 +126,29 @@ export class SupabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
+    // 1. Create user in Supabase Auth
+    const { data: authData, error: authError } = await this.supabase.auth.signUp({
+      email: insertUser.email,
+      password: insertUser.password,
+    });
+
+    if (authError) {
+      throw new Error(`Supabase Auth Error: ${authError.message}`);
+    }
+
+    if (!authData.user) {
+       throw new Error("Supabase Auth failed to return a user.");
+    }
+
+    // 2. Insert into our custom users table (using the ID from Auth)
+    const id = authData.user.id; // Use Supabase Auth ID
     const accessToken = generateAccessToken();
     const hashedPassword = await hashPassword(insertUser.password);
 
     const user: User = {
       id,
       email: insertUser.email,
-      password: hashedPassword,
+      password: hashedPassword, // Store hashed password locally as well if needed by existing logic, or rely on Auth
       companyName: insertUser.companyName ?? null,
       accessToken,
       messageCount: 0,
@@ -146,7 +161,9 @@ export class SupabaseStorage implements IStorage {
       .single();
 
     if (error) {
-      throw new Error(`Failed to create user: ${error.message}`);
+      // If insert fails (e.g. user already exists in table but not auth, or other constraint), handle it
+      // Note: In a real scenario, you might want to rollback the auth creation if this fails.
+      throw new Error(`Failed to create user record: ${error.message}`);
     }
 
     return data as User;
