@@ -82,6 +82,12 @@ export class MemStorage implements IStorage {
       this.users.set(userId, user);
     }
   }
+
+  async verifyEmailOtp(email: string, otp: string): Promise<boolean> {
+    // For MemStorage, we can just assume OTP is always valid or log it
+    console.log(`[MemStorage] Verifying OTP for ${email}: ${otp}`);
+    return true; 
+  }
 }
 
 // Supabase Storage Implementation

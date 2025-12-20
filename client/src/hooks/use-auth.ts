@@ -57,6 +57,9 @@ export function useAuth() {
       const res = await apiRequest("POST", "/api/auth/verify-otp", data);
       return res.json();
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+    },
   });
 
   return {

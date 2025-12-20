@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, MessageSquare, ShieldCheck, Sparkles } from "lucide-react";
+import { Loader2, MessageSquare, ShieldCheck, Sparkles, KeyRound } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const loginSchema = z.object({
@@ -29,14 +29,23 @@ const registerSchema = z.object({
   path: ["confirmPassword"],
 });
 
+const otpSchema = z.object({
+  otp: z.string().length(6, "رمز التحقق يجب أن يكون 6 أرقام"),
+});
+
 type LoginFormData = z.infer<typeof loginSchema>;
 type RegisterFormData = z.infer<typeof registerSchema>;
+type OtpFormData = z.infer<typeof otpSchema>;
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const { login, register, loginPending, registerPending } = useAuth();
+  const { login, register, loginPending, registerPending, verifyOtp, verifyOtpPending } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("login");
+  
+  // OTP State
+  const [showOtp, setShowOtp] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -56,6 +65,13 @@ export default function Login() {
     },
   });
 
+  const otpForm = useForm<OtpFormData>({
+    resolver: zodResolver(otpSchema),
+    defaultValues: {
+      otp: "",
+    },
+  });
+
   const handleLogin = async (data: LoginFormData) => {
     try {
       await login(data);
@@ -70,11 +86,23 @@ export default function Login() {
   const handleRegister = async (data: RegisterFormData) => {
     try {
       await register({ companyName: data.companyName, email: data.email, password: data.password, confirmPassword: data.confirmPassword });
-      toast({ title: "تم إنشاء الحساب بنجاح", description: "يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب", className: "bg-green-600 text-white border-none" });
-      setActiveTab("login"); // Switch to login tab
+      setRegisteredEmail(data.email);
+      setShowOtp(true);
+      toast({ title: "تم إنشاء الحساب بنجاح", description: "يرجى التحقق من بريدك الإلكتروني للحصول على الرمز", className: "bg-green-600 text-white border-none" });
     } catch (error: any) {
       const errorMessage = error?.message || "حدث خطأ في التسجيل";
       toast({ title: "خطأ", description: errorMessage, variant: "destructive" });
+    }
+  };
+
+  const handleVerifyOtp = async (data: OtpFormData) => {
+    try {
+      await verifyOtp({ email: registeredEmail, otp: data.otp });
+      toast({ title: "تم التحقق بنجاح", className: "bg-green-600 text-white border-none" });
+      setLocation("/");
+    } catch (error: any) {
+       const errorMessage = error?.message || "رمز التحقق غير صحيح";
+       toast({ title: "خطأ", description: errorMessage, variant: "destructive" });
     }
   };
 
@@ -107,66 +135,43 @@ export default function Login() {
                 WhatsApp Bot
               </CardTitle>
               <CardDescription className="text-gray-400">
-                منصة متكاملة لإدارة حسابات واتساب
+                {showOtp ? "التحقق من البريد الإلكتروني" : "منصة متكاملة لإدارة حسابات واتساب"}
               </CardDescription>
             </div>
           </CardHeader>
           <CardContent className="pt-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-8 bg-zinc-900/50 p-1 border border-white/5">
-                <TabsTrigger
-                  value="login"
-                  className="data-[state=active]:bg-red-600 data-[state=active]:text-white transition-all"
+            <AnimatePresence mode="wait">
+              {showOtp ? (
+                <motion.div
+                  key="otp-form"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  تسجيل الدخول
-                </TabsTrigger>
-                <TabsTrigger
-                  value="register"
-                  className="data-[state=active]:bg-red-600 data-[state=active]:text-white transition-all"
-                >
-                  حساب جديد
-                </TabsTrigger>
-              </TabsList>
-
-              <AnimatePresence mode="wait">
-                <TabsContent value="login" key="login">
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <Form {...loginForm}>
-                      <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-5">
+                   <div className="text-center mb-6">
+                      <p className="text-gray-400 text-sm">
+                        تم إرسال رمز التحقق إلى <span className="text-red-400">{registeredEmail}</span>
+                      </p>
+                      <Button variant="link" onClick={() => setShowOtp(false)} className="text-xs text-gray-500 mt-2">
+                        تغيير البريد الإلكتروني؟
+                      </Button>
+                   </div>
+                   
+                   <Form {...otpForm}>
+                      <form onSubmit={otpForm.handleSubmit(handleVerifyOtp)} className="space-y-5">
                         <FormField
-                          control={loginForm.control}
-                          name="email"
+                          control={otpForm.control}
+                          name="otp"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-gray-300">البريد الإلكتروني</FormLabel>
+                              <FormLabel className="text-gray-300">رمز التحقق (OTP)</FormLabel>
                               <FormControl>
                                 <Input
-                                  className="bg-zinc-900/50 border-white/10 focus:border-red-500/50 focus:ring-red-500/20 transition-all h-11"
-                                  placeholder="user@example.com"
                                   {...field}
-                                />
-                              </FormControl>
-                              <FormMessage className="text-red-400" />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={loginForm.control}
-                          name="password"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-gray-300">كلمة المرور</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="password"
-                                  className="bg-zinc-900/50 border-white/10 focus:border-red-500/50 focus:ring-red-500/20 transition-all h-11"
-                                  placeholder="••••••••"
-                                  {...field}
+                                  className="bg-zinc-900/50 border-white/10 focus:border-red-500/50 focus:ring-red-500/20 transition-all h-11 text-center text-xl tracking-widest"
+                                  placeholder="------"
+                                  maxLength={6}
                                 />
                               </FormControl>
                               <FormMessage className="text-red-400" />
@@ -176,118 +181,195 @@ export default function Login() {
                         <Button
                           type="submit"
                           className="w-full h-12 text-base bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 shadow-lg shadow-red-600/20 transition-all border-none"
-                          disabled={loginPending}
+                          disabled={verifyOtpPending}
                         >
-                          {loginPending ? (
+                          {verifyOtpPending ? (
                             <><Loader2 className="w-5 h-5 animate-spin ml-2" /> جاري التحقق...</>
                           ) : (
-                            <><ShieldCheck className="w-5 h-5 ml-2" /> تسجيل الدخول</>
+                            <><KeyRound className="w-5 h-5 ml-2" /> تأكيد الحساب</>
                           )}
                         </Button>
                       </form>
-                    </Form>
-                  </motion.div>
-                </TabsContent>
+                   </Form>
+                </motion.div>
+              ) : (
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-8 bg-zinc-900/50 p-1 border border-white/5">
+                    <TabsTrigger
+                      value="login"
+                      className="data-[state=active]:bg-red-600 data-[state=active]:text-white transition-all"
+                    >
+                      تسجيل الدخول
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="register"
+                      className="data-[state=active]:bg-red-600 data-[state=active]:text-white transition-all"
+                    >
+                      حساب جديد
+                    </TabsTrigger>
+                  </TabsList>
 
-                <TabsContent value="register" key="register">
-                  <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <Form {...registerForm}>
-                      <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4 mt-4">
-                        <FormField
-                          control={registerForm.control}
-                          name="companyName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-gray-300">اسم الشركة</FormLabel>
-                              <FormControl>
-                                <Input
-                                  className="bg-zinc-900/50 border-white/10 focus:border-red-500/50 focus:ring-red-500/20 transition-all h-11"
-                                  placeholder="أدخل اسم الشركة"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage className="text-red-400" />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={registerForm.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-gray-300">البريد الإلكتروني</FormLabel>
-                              <FormControl>
-                                <Input
-                                  className="bg-zinc-900/50 border-white/10 focus:border-red-500/50 focus:ring-red-500/20 transition-all h-11"
-                                  placeholder="user@example.com"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage className="text-red-400" />
-                            </FormItem>
-                          )}
-                        />
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            control={registerForm.control}
-                            name="password"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-gray-300">كلمة المرور</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="password"
-                                    className="bg-zinc-900/50 border-white/10 focus:border-red-500/50 focus:ring-red-500/20 transition-all h-11"
-                                    placeholder="••••••"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage className="text-red-400" />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={registerForm.control}
-                            name="confirmPassword"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-gray-300">تأكيد</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="password"
-                                    className="bg-zinc-900/50 border-white/10 focus:border-red-500/50 focus:ring-red-500/20 transition-all h-11"
-                                    placeholder="••••••"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage className="text-red-400" />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        <Button
-                          type="submit"
-                          className="w-full h-12 text-base bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 shadow-lg shadow-red-600/20 transition-all border-none"
-                          disabled={registerPending}
-                        >
-                          {registerPending ? (
-                            <><Loader2 className="w-5 h-5 animate-spin ml-2" /> جارٍ الإنشاء...</>
-                          ) : (
-                            <><Sparkles className="w-5 h-5 ml-2" /> إنشاء حساب جديد</>
-                          )}
-                        </Button>
-                      </form>
-                    </Form>
-                  </motion.div>
-                </TabsContent>
-                )}
-              </AnimatePresence>
-            </Tabs>
+                  <AnimatePresence mode="wait">
+                    <TabsContent value="login" key="login">
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Form {...loginForm}>
+                          <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-5">
+                            <FormField
+                              control={loginForm.control}
+                              name="email"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-gray-300">البريد الإلكتروني</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      className="bg-zinc-900/50 border-white/10 focus:border-red-500/50 focus:ring-red-500/20 transition-all h-11"
+                                      placeholder="user@example.com"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage className="text-red-400" />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={loginForm.control}
+                              name="password"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-gray-300">كلمة المرور</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="password"
+                                      className="bg-zinc-900/50 border-white/10 focus:border-red-500/50 focus:ring-red-500/20 transition-all h-11"
+                                      placeholder="••••••••"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage className="text-red-400" />
+                                </FormItem>
+                              )}
+                            />
+                            <Button
+                              type="submit"
+                              className="w-full h-12 text-base bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 shadow-lg shadow-red-600/20 transition-all border-none"
+                              disabled={loginPending}
+                            >
+                              {loginPending ? (
+                                <><Loader2 className="w-5 h-5 animate-spin ml-2" /> جاري التحقق...</>
+                              ) : (
+                                <><ShieldCheck className="w-5 h-5 ml-2" /> تسجيل الدخول</>
+                              )}
+                            </Button>
+                          </form>
+                        </Form>
+                      </motion.div>
+                    </TabsContent>
+
+                    <TabsContent value="register" key="register">
+                      <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Form {...registerForm}>
+                          <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4 mt-4">
+                            <FormField
+                              control={registerForm.control}
+                              name="companyName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-gray-300">اسم الشركة</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      className="bg-zinc-900/50 border-white/10 focus:border-red-500/50 focus:ring-red-500/20 transition-all h-11"
+                                      placeholder="أدخل اسم الشركة"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage className="text-red-400" />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={registerForm.control}
+                              name="email"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-gray-300">البريد الإلكتروني</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      className="bg-zinc-900/50 border-white/10 focus:border-red-500/50 focus:ring-red-500/20 transition-all h-11"
+                                      placeholder="user@example.com"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage className="text-red-400" />
+                                </FormItem>
+                              )}
+                            />
+                            <div className="grid grid-cols-2 gap-4">
+                              <FormField
+                                control={registerForm.control}
+                                name="password"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-gray-300">كلمة المرور</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="password"
+                                        className="bg-zinc-900/50 border-white/10 focus:border-red-500/50 focus:ring-red-500/20 transition-all h-11"
+                                        placeholder="••••••"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormMessage className="text-red-400" />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={registerForm.control}
+                                name="confirmPassword"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-gray-300">تأكيد</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="password"
+                                        className="bg-zinc-900/50 border-white/10 focus:border-red-500/50 focus:ring-red-500/20 transition-all h-11"
+                                        placeholder="••••••"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormMessage className="text-red-400" />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            <Button
+                              type="submit"
+                              className="w-full h-12 text-base bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 shadow-lg shadow-red-600/20 transition-all border-none"
+                              disabled={registerPending}
+                            >
+                              {registerPending ? (
+                                <><Loader2 className="w-5 h-5 animate-spin ml-2" /> جارٍ الإنشاء...</>
+                              ) : (
+                                <><Sparkles className="w-5 h-5 ml-2" /> إنشاء حساب جديد</>
+                              )}
+                            </Button>
+                          </form>
+                        </Form>
+                      </motion.div>
+                    </TabsContent>
+                  </AnimatePresence>
+                </Tabs>
+              )}
+            </AnimatePresence>
           </CardContent>
         </Card>
 

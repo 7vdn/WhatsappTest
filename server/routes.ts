@@ -119,7 +119,32 @@ export async function registerRoutes(
         return res.status(400).json({ error: "رمز التحقق غير صحيح أو منتهي الصلاحية" });
       }
 
-      res.json({ success: true });
+      // Get user to set session
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(400).json({ error: "المستخدم غير موجود" });
+      }
+
+      // Set session
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error("Session regeneration error:", err);
+          return res.status(500).json({ error: "حدث خطأ في إنشاء الجلسة" });
+        }
+
+        req.session.userId = user.id;
+        
+        res.json({ 
+          success: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            accessToken: user.accessToken,
+            messageCount: user.messageCount,
+          }
+        });
+      });
+
     } catch (error) {
       console.error("OTP Verification error:", error);
       res.status(500).json({ error: "حدث خطأ في التحقق من الرمز" });
