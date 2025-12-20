@@ -90,6 +90,13 @@ export class MemStorage implements IStorage {
     console.log(`[MemStorage] Verifying OTP for ${email}: ${otp}`);
     return true; 
   }
+
+  async verifyUser(email: string, password: string): Promise<User | undefined> {
+    const user = await this.getUserByEmail(email);
+    if (!user) return undefined;
+    const isValid = await verifyPassword(password, user.password);
+    return isValid ? user : undefined;
+  }
 }
 
 // Supabase Storage Implementation
@@ -206,6 +213,30 @@ export class SupabaseStorage implements IStorage {
 
   async incrementMessageCount(userId: string): Promise<void> {
     await this.supabase.rpc('increment_message_count', { user_id: userId });
+  }
+
+  async verifyUser(email: string, password: string): Promise<User | undefined> {
+    // Attempt to sign in with Supabase Auth
+    const { data, error } = await this.supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error || !data.user) {
+      console.error("Supabase Auth Login Failed:", error?.message);
+      return undefined;
+    }
+    
+    // Explicitly check if email is confirmed
+    // Note: data.user.email_confirmed_at is a string timestamp if confirmed, or null/undefined if not.
+    if (!data.user.email_confirmed_at) {
+       console.error("User email not confirmed:", email);
+       return undefined;
+    }
+
+    // If successful, the user is verified and credentials are correct.
+    // Now fetch the local user record to return application-specific data.
+    return this.getUserByEmail(email);
   }
 }
 

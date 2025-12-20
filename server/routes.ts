@@ -165,14 +165,11 @@ export async function registerRoutes(
         return res.status(400).json({ error: "بيانات غير صحيحة" });
       }
 
-      const user = await storage.getUserByEmail(parsed.data.email);
-      if (!user) {
-        return res.status(401).json({ error: "البريد الإلكتروني أو كلمة المرور غير صحيحة" });
-      }
+      // Use verifyUser which checks Supabase Auth (verifying email confirmation status)
+      const user = await storage.verifyUser(parsed.data.email, parsed.data.password);
 
-      const isValidPassword = await verifyPassword(parsed.data.password, user.password);
-      if (!isValidPassword) {
-        return res.status(401).json({ error: "البريد الإلكتروني أو كلمة المرور غير صحيحة" });
+      if (!user) {
+        return res.status(401).json({ error: "البريد الإلكتروني أو كلمة المرور غير صحيحة، أو لم يتم تفعيل الحساب بعد." });
       }
 
       req.session.regenerate((err) => {
