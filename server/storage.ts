@@ -199,6 +199,19 @@ export class SupabaseStorage implements IStorage {
     return true;
   }
 
+  async resendSignupOtp(email: string): Promise<boolean> {
+    const { error } = await this.supabase.auth.resend({
+      type: 'signup',
+      email,
+    });
+
+    if (error) {
+      console.error("Resend OTP failed:", error.message);
+      return false;
+    }
+    return true;
+  }
+
   async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
     const { data, error } = await this.supabase
       .from('users')
