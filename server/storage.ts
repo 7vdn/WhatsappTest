@@ -11,7 +11,6 @@ export interface IStorage {
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   incrementMessageCount(userId: string): Promise<void>;
   verifyEmailOtp(email: string, otp: string): Promise<boolean>;
-  resendSignupOtp(email: string): Promise<boolean>;
   verifyUser(email: string, password: string): Promise<User | undefined>;
 }
 
@@ -90,11 +89,6 @@ export class MemStorage implements IStorage {
     // For MemStorage, we can just assume OTP is always valid or log it
     console.log(`[MemStorage] Verifying OTP for ${email}: ${otp}`);
     return true; 
-  }
-
-  async resendSignupOtp(email: string): Promise<boolean> {
-    console.log(`[MemStorage] Resending OTP for ${email}`);
-    return true;
   }
 
   async verifyUser(email: string, password: string): Promise<User | undefined> {

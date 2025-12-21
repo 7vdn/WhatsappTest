@@ -76,19 +76,6 @@ export async function registerRoutes(
 
       const existingUser = await storage.getUserByEmail(parsed.data.email);
       if (existingUser) {
-        // If user exists, try to resend OTP (in case they are not verified)
-        const resendSuccess = await storage.resendSignupOtp(parsed.data.email);
-        if (resendSuccess) {
-           return res.json({
-            success: true,
-            user: {
-              id: existingUser.id,
-              email: existingUser.email,
-              messageCount: existingUser.messageCount,
-            },
-            message: "تم إرسال رمز التحقق مجدداً"
-          });
-        }
         return res.status(400).json({ error: "البريد الإلكتروني موجود مسبقاً" });
       }
 
